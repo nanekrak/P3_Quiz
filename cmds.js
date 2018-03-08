@@ -1,6 +1,6 @@
 const readline = require('readline');
 
-const model = require('./model');
+const {models} = require('./model');
 const {log,biglog,errorlog, colorize} = require('./out');
 
 
@@ -47,10 +47,19 @@ exports.addCmd = rl => {
  *Saca todos los quizzes existentes
  */
 exports.listCmd = rl => {
-  model.getAll().forEach((quiz,id) => {
-    log(`  [${colorize(id,'magenta')}]: ${quiz.question}`);
-   });
-  rl.prompt();
+
+  models.quiz.findAll()
+  .then(quizzes => {
+    quizzes.forEach(quiz => {
+      log(`[${colorize(quiz.id, 'magenta')}]:  ¿${quiz.question}?`);
+    });
+  })
+  .catch(error =>{
+    errorlog(error.message);
+  })
+  .then(()=>{
+    rl.prompt();
+  })
 }
 
 /*
