@@ -36,7 +36,7 @@ exports.quitCmd = rl => {
  */
 
 const makeQuestion =(rl, text) => {
-  return new Promise ((resolve, reject) => {
+  return new Sequelize.Promise ((resolve, reject) => {
     rl.question(colorize(text, 'red'), answer => {
       resolve(answer.trim());
     });
@@ -101,7 +101,7 @@ exports.listCmd = rl => {
 //Devuelve una promesa si el id es valido
 const validateId = id =>{
 
-  return new Promise((resolve, reject) => {
+  return new Sequelize.Promise((resolve, reject) => {
     if (typeof id === "undefined"){
       reject(new Error(`Falta el parametro <id>.`));
     }else{
@@ -151,6 +151,11 @@ exports.showCmd = (rl,id) => {
  *Prueba el quiz que se indica
  */
 exports.testCmd = (rl,id) => {
+  log('Probar el quiz indicado.','red');
+  rl.prompt();
+};
+
+/*
 
   if (typeof id === "undefined"){
     errorlog('Falta el parámetro id.');
@@ -176,12 +181,18 @@ exports.testCmd = (rl,id) => {
 
 
 }
-
+*/
 /*
  *Empieza el juego
  */
 exports.playCmd = rl => {
 
+  log('Jugar.','red');
+  rl.prompt();
+};
+
+
+/*
   let score= 0;
 
   let toBeResolved = [];
@@ -218,12 +229,24 @@ exports.playCmd = rl => {
   }
   play();
 }
-
+*/
 /*
  *Borra el quiz indicado
  */
 exports.deleteCmd = (rl,id) => {
-  if(typeof id === "undefined"){
+validateId(id)
+.then(id => models.quiz.destroy({where: {id}}))
+.catch(error => {
+  errorlog(error.message);
+})
+.then(() => {
+  rl.prompt();
+});
+};
+
+
+
+/*  if(typeof id === "undefined"){
     errorlog(`Falta el parámetro id.`);
   }else{
     try{
@@ -233,13 +256,51 @@ exports.deleteCmd = (rl,id) => {
     }
   }
   rl.prompt();
-}
+}*/
 
 /*
  *Edita el quiz indicado
  */
 exports.editCmd = (rl,id) => {
-  if(typeof id === "undefined"){
+  validateId(id)
+  .then(id => models.quiz.findById(id))
+  .then(quiz => {
+    if(!quiz){
+      throw new Error(`No existe el parametro asociado ${id}.`);
+    }
+
+    process.stdout.isTTY && setTimeout(() => {rl.write(quiz.question)},0);
+    return makeQuestion(rl, ' Introduzca la pregunta: ')
+    .then(q => {
+        process.stdout.isTTY && setTimeout(() => {rl.write(quiz.answer)},0);
+        return makeQuestion(rl, 'Introduzca la respuesta ')
+        .then(a => {
+          quiz.question =q;
+          quiz.answer =a;
+          return quiz;
+        });
+    });
+  })
+.then(quiz => {
+  return quiz.save();
+})
+.then(quiz => {
+  log (`Se ha cambiado el quiz ${colorize(quiz.id, 'magenta')} por: ${quiz.question} ${colorize('=>', 'magenta')} ${quiz.answer}`)
+})
+.catch(Sequelize.ValidationError, error => {
+  errorlog('El quiz es erroneo:');
+  error.errors.forEach(({message}) => errorlog(message));
+})
+.catch(error => {
+  errorlog(error.message);
+})
+.then(() => {
+  rl.prompt();
+});
+}
+
+
+  /*if(typeof id === "undefined"){
     errorlog(`Falta el parámetro id.`);
     rl.prompt();
   }else{
@@ -260,8 +321,8 @@ exports.editCmd = (rl,id) => {
       rl.prompt();
     }
   }
-  rl.prompt();
-}
+  rl.prompt();*/
+
 
 /*
  *Muestra los creditos
