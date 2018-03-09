@@ -3,6 +3,8 @@ const readline = require('readline');
 const {models} = require('./model');
 const {log,biglog,errorlog, colorize} = require('./out');
 
+const Sequelize = require('sequelize');
+
 
 /*
  *Muestra el comando de ayuda por pantalla.
@@ -32,8 +34,43 @@ exports.quitCmd = rl => {
 /*
  *Anade una nueva pregunta
  */
+
+const makeQuestion =(rl, text) => {
+  return new Promise ((resolve, reject) => {
+    rl.question(colorize(text, 'red'), answer => {
+      resolve(answer.trim());
+    });
+  });
+};
+
+
+
 exports.addCmd = rl => {
 
+  makeQuestion(rl, ' Introduzca una pregunta: ')
+  .then(q => {
+    return makeQuestion(rl, ' Introduzca la respuesta: ')
+    .then(a => {
+      return {question: q, answer:a};
+    });
+  })
+.then(quiz=>{
+    return models.quiz.create(quiz);
+})
+.then((quiz) => {
+    log(`${colorize('Se ha añadido', 'magenta')}: ${quiz.question} ${colorize(' => ','magenta')} ${quiz.answer}`);
+})
+.catch(Sequelize.ValidationError, error => {
+  errorlog ('El quiz es erroneo:');
+  error.errors.forEach(({message}) => errorlog(message));
+})
+.catch(error => {
+  errorlog(error.message);
+})
+.then(() => {
+  rl.prompt();
+});
+/*
   rl.question(colorize(' Introduzca una pregunta: ', 'red'), question =>{
     rl.question(colorize(' Introduzca la respuesta: ', 'red'), answer =>{
       model.add(question, answer);
@@ -41,7 +78,8 @@ exports.addCmd = rl => {
       rl.prompt();
     })
   })
-}
+  */
+};
 
 /*
  *Saca todos los quizzes existentes
@@ -49,11 +87,9 @@ exports.addCmd = rl => {
 exports.listCmd = rl => {
 
   models.quiz.findAll()
-  .then(quizzes => {
-    quizzes.forEach(quiz => {
+  .each(quiz => {
       log(`[${colorize(quiz.id, 'magenta')}]:  ¿${quiz.question}?`);
-    });
-  })
+    })
   .catch(error =>{
     errorlog(error.message);
   })
@@ -62,11 +98,27 @@ exports.listCmd = rl => {
   })
 }
 
+//Devuelve una promesa si el id es valido
+const validateId = id =>{
+
+  return new Promise((resolve, reject) => {
+    if (typeof id === "undefined"){
+      reject(new Error(`Falta el parametro <id>.`));
+    }else{
+      id=parseInt(id);
+      if(Number.isNaN(id)){
+        reject(new Error(`El valor del parametro <id> no es un numero.`));
+      }else{
+        resolve(id);
+      }
+    }
+  })
+}
 /*
  *Muestra el quiz que se indica
  */
 exports.showCmd = (rl,id) => {
-
+/*
   if (typeof id === "undefined"){
     errorlog('Falta el parámetro id.');
   }else{
@@ -77,8 +129,23 @@ exports.showCmd = (rl,id) => {
       errorlog(error.message);
     }
   }
-  rl.prompt();
-}
+  */
+  validateId(id)
+  .then(id => models.quiz.findById(id))
+  .then(quiz => {
+    if(!quiz){
+      throw new Error (` No existe un quiz asociado al id=${id}.`);
+    }
+    log(`  [${colorize(quiz.id,'magenta')}]: ${quiz.question} ${colorize('=>','magenta')} ${quiz.answer}`);
+  })
+  .catch(error => {
+    errorlog(error.message);
+  })
+  .then(() => {
+    rl.prompt();
+  });
+
+};
 
 /*
  *Prueba el quiz que se indica
