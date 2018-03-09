@@ -5,7 +5,30 @@ const {log,biglog,errorlog, colorize} = require('./out');
 
 const Sequelize = require('sequelize');
 
+//Devuelve una promesa si el id es valido
+const validateId = id =>{
 
+  return new Sequelize.Promise((resolve, reject) => {
+    if (typeof id === "undefined"){
+      reject(new Error(`Falta el parametro <id>.`));
+    }else{
+      id=parseInt(id);
+      if(Number.isNaN(id)){
+        reject(new Error(`El valor del parametro <id> no es un numero.`));
+      }else{
+        resolve(id);
+      }
+    }
+  })
+}
+
+const makeQuestion =(rl, text) => {
+  return new Sequelize.Promise ((resolve, reject) => {
+    rl.question(colorize(` ¿${text}? `, 'red'), answer => {
+      resolve(answer.trim());
+    });
+  });
+};
 /*
  *Muestra el comando de ayuda por pantalla.
  */
@@ -35,21 +58,12 @@ exports.quitCmd = rl => {
  *Anade una nueva pregunta
  */
 
-const makeQuestion =(rl, text) => {
-  return new Sequelize.Promise ((resolve, reject) => {
-    rl.question(colorize(` ¿${text}? `, 'red'), answer => {
-      resolve(answer.trim());
-    });
-  });
-};
-
-
 
 exports.addCmd = rl => {
 
-  makeQuestion(rl, ' Introduzca una pregunta: ')
+  makeQuestion(rl, 'Pregunta')
   .then(q => {
-    return makeQuestion(rl, ' Introduzca la respuesta: ')
+    return makeQuestion(rl, 'Respuesta')
     .then(a => {
       return {question: q, answer:a};
     });
@@ -90,22 +104,6 @@ exports.listCmd = rl => {
   })
 }
 
-//Devuelve una promesa si el id es valido
-const validateId = id =>{
-
-  return new Sequelize.Promise((resolve, reject) => {
-    if (typeof id === "undefined"){
-      reject(new Error(`Falta el parametro <id>.`));
-    }else{
-      id=parseInt(id);
-      if(Number.isNaN(id)){
-        reject(new Error(`El valor del parametro <id> no es un numero.`));
-      }else{
-        resolve(id);
-      }
-    }
-  })
-}
 /*
  *Muestra el quiz que se indica
  */
