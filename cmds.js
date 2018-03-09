@@ -130,24 +130,29 @@ exports.showCmd = (rl,id) => {
  *Prueba el quiz que se indica
  */
 exports.testCmd = (rl,id) => {
-
   validateId(id)
   .then(id => models.quiz.findById(id))
   .then(quiz => {
-    if(!quiz){
-      throw new Error (` No existe un quiz asociado al id=${id}.`);
+    if (!quiz){
+      throw new Error(` No existe un quiz asociado al id=${id}.`)
     }
+    return new Promise((resolve, reject) => {
+
+
     makeQuestion(rl, quiz.question)
     .then(answer => {
       if(answer.toLowerCase().trim() === quiz.answer.toLowerCase().trim()){
         log('Su respuesta es correcta');
         biglog('Correcta', 'green');
+        resolve()
       }else{
         log('Su respuesta es incorrecta');
         biglog('Incorrecta', 'red');
+        resolve()
       }
-
+    })
   })
+})
   .catch(error => {
     errorlog(error.message);
   })
@@ -155,36 +160,9 @@ exports.testCmd = (rl,id) => {
     rl.prompt();
   });
 
-});
 }
 
-/*
 
-  if (typeof id === "undefined"){
-    errorlog('Falta el parámetro id.');
-    rl.prompt();
-  }else{
-    try{
-      const quiz = model.getByIndex(id);
-      rl.question(colorize(` ${quiz.question}: `, 'magenta'), answer =>{
-        if (quiz.answer.toLowerCase().trim()===answer.toLowerCase().trim()){
-          log('Su respuesta es correcta');
-          biglog('Correcta', 'green');
-        }else{
-          log('Su respuesta es incorrecta');
-          biglog('Incorrecta', 'red');
-        }
-        rl.prompt();
-      })
-    }catch(error){
-      errorlog(error.message);
-      rl.prompt();
-    }
-  }
-
-
-}
-*/
 /*
  *Empieza el juego
  */
