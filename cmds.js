@@ -132,9 +132,33 @@ exports.showCmd = (rl,id) => {
  *Prueba el quiz que se indica
  */
 exports.testCmd = (rl,id) => {
-  log('Probar el quiz indicado.','red');
-  rl.prompt();
-};
+
+  validateId(id)
+  .then(id => models.quiz.findById(id))
+  .then(quiz => {
+    if(!quiz){
+      throw new Error (` No existe un quiz asociado al id=${id}.`);
+    }
+    makeQuestion(rl, quiz.question)
+    .then(answer => {
+      if(answer.toLowerCase().trim() === quiz.answer.toLowerCase().trim()){
+        log('Su respuesta es correcta');
+        biglog('Correcta', 'green');
+      }else{
+        log('Su respuesta es incorrecta');
+        biglog('Incorrecta', 'red');
+      }
+
+  })
+  .catch(error => {
+    errorlog(error.message);
+  })
+  .then(() => {
+    rl.prompt();
+  });
+
+});
+}
 
 /*
 
@@ -176,7 +200,7 @@ exports.playCmd = rl => {
       }
 
   		const playOne = () => {
-        return new Sequelize.Promise ((resolve, reject) => {
+        return new Promise ((resolve, reject) => {
   				if(toBePlayed.length === 0) {
             log(' ¡No hay preguntas que responder!','yellow');
             log(' Fin del examen. Aciertos: ');
