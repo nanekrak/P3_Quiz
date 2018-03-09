@@ -37,7 +37,7 @@ exports.quitCmd = rl => {
 
 const makeQuestion =(rl, text) => {
   return new Sequelize.Promise ((resolve, reject) => {
-    rl.question(colorize(text, 'red'), answer => {
+    rl.question(colorize(` ¿${text}? `, 'red'), answer => {
       resolve(answer.trim());
     });
   });
@@ -70,15 +70,7 @@ exports.addCmd = rl => {
 .then(() => {
   rl.prompt();
 });
-/*
-  rl.question(colorize(' Introduzca una pregunta: ', 'red'), question =>{
-    rl.question(colorize(' Introduzca la respuesta: ', 'red'), answer =>{
-      model.add(question, answer);
-      log(`${colorize('Se ha añadido', 'magenta')}: ${question} ${colorize(' => ','magenta')} ${answer}`);
-      rl.prompt();
-    })
-  })
-  */
+
 };
 
 /*
@@ -118,18 +110,7 @@ const validateId = id =>{
  *Muestra el quiz que se indica
  */
 exports.showCmd = (rl,id) => {
-/*
-  if (typeof id === "undefined"){
-    errorlog('Falta el parámetro id.');
-  }else{
-    try{
-      const quiz = model.getByIndex(id);
-      log(`  [${colorize(id,'magenta')}]: ${quiz.question} ${colorize('=>','magenta')} ${quiz.answer}`);
-    }catch(error){
-      errorlog(error.message);
-    }
-  }
-  */
+
   validateId(id)
   .then(id => models.quiz.findById(id))
   .then(quiz => {
@@ -187,49 +168,55 @@ exports.testCmd = (rl,id) => {
  */
 exports.playCmd = rl => {
 
-  log('Jugar.','red');
-  rl.prompt();
-};
+  		let score = 0; //acumulov el resultado
+  		let toBePlayed = []; //array a rellenar con todas las preguntas de la BBDD. Como se consigue? Con una promesa
 
+      for (i=0; i<models.quiz.count();i++){
+        toBeResolved[i]=i;
+      }
 
-/*
-  let score= 0;
+  		const playOne = () => {
+        return new Sequelize.Promise ((resolve, reject) => {
+  				if(toBePlayed.length === 0) {
+            log(' ¡No hay preguntas que responder!','yellow');
+            log(' Fin del examen. Aciertos: ');
+  					resolve();
+  					return;
+  				}
+  				let pos = Math.floor(Math.random()*toBePlayed.length);
+  				let quiz = toBePlayed[pos];
+  		    toBePlayed.splice(pos, 1); //lo borro porque ya no lo quiero más
 
-  let toBeResolved = [];
-  for (i=0; i<model.count();i++){
-    toBeResolved[i]=i;
-  }
-
-  const play = () => {
-    if (toBeResolved.length===0){
-      log('¡No hay preguntas que responder!','yellow');
-      log('Fin del examen. Aciertos: ');
-      biglog(score,'blue');
-    }else{
-
-      let id= Math.floor(Math.random() * toBeResolved.length);
-
-      let quiz = model.getByIndex(toBeResolved[id]);
-
-      toBeResolved.splice(id,1);
-      rl.question(colorize(`¿${quiz.question}? `, 'magenta'),answer =>{
-        if(answer.toLowerCase().trim() === quiz.answer.toLowerCase().trim()){
-          score++;
-          log(` CORRECTO - Lleva ${score} aciertos`);
-          play();
-        }else{
-          log(' INCORRECTO.');
-          log(` Fin del juego. Aciertos: ${score} `);
-          biglog(score, 'blue');
-          rl.prompt();
-        }
+  		    makeQuestion(rl, quiz.question)
+  		    .then(answer => {
+            if(answer.toLowerCase().trim() === quiz.answer.toLowerCase().trim()){
+              score++;
+  				    log(`  CORRECTO - Lleva ${score} aciertos`);
+  				    resolve(playOne());
+            }else{
+              log('  INCORRECTO ');
+              log(`  Fin del juego. Aciertos: ${score} `);
+  				    resolve();
+  			    }
+  		    })
+  	     })
+  	  }
+  		models.quiz.findAll({raw: true}) //el raw hace que enseñe un string solamente en lugar de todo el contenido
+  		.then(quizzes => {
+  			toBePlayed= quizzes;
       })
-    }
-    rl.prompt();
-  }
-  play();
+  		.then(() => {
+  		 	return playOne(); //es necesario esperar a que la promesa acabe, por eso no es un return a secas
+  		 })
+  		.catch(e => {
+  			errorlog("Error:" + e); //usar errorlog con colores
+  		})
+  		.then(() => {
+  			biglog(score, 'blue');
+  			rl.prompt();
+  		})
 }
-*/
+
 /*
  *Borra el quiz indicado
  */
@@ -243,20 +230,6 @@ validateId(id)
   rl.prompt();
 });
 };
-
-
-
-/*  if(typeof id === "undefined"){
-    errorlog(`Falta el parámetro id.`);
-  }else{
-    try{
-      model.deleteByIndex(id);
-    }catch(error){
-      errorlog(error.message);
-    }
-  }
-  rl.prompt();
-}*/
 
 /*
  *Edita el quiz indicado
@@ -298,31 +271,6 @@ exports.editCmd = (rl,id) => {
   rl.prompt();
 });
 }
-
-
-  /*if(typeof id === "undefined"){
-    errorlog(`Falta el parámetro id.`);
-    rl.prompt();
-  }else{
-    try{
-      const quiz = model.getByIndex(id);
-
-      process.stdout.isTTY && setTimeout(() => {rl.write(quiz.question)},0);
-      rl.question(colorize( ' Introduzca una pregunta: ', 'red'), question => {
-        process.stdout.isTTY && setTimeout(() => {rl.write(quiz.answer)},0);
-        rl.question(colorize(' Introduzca la respuesta ', 'red'), answer => {
-          model.update(id,question, answer);
-          log(` Se ha cambiado el quiz ${colorize(id, 'magenta')} por ${question} ${answer}`);
-          rl.prompt();
-        })
-      })
-    }catch(error){
-      errorlog(error.message);
-      rl.prompt();
-    }
-  }
-  rl.prompt();*/
-
 
 /*
  *Muestra los creditos
